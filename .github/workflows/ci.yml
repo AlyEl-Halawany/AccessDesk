@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  backend:
+    name: Build and Test (.NET 10)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore AccessDesk.slnx
+
+      - name: Build
+        run: dotnet build AccessDesk.slnx --no-restore --configuration Release
+
+      - name: Run Unit Tests
+        run: dotnet test tests/AccessDesk.UnitTests/AccessDesk.UnitTests.csproj --no-build --configuration Release --verbosity normal
+
+      - name: Run Integration Tests
+        run: dotnet test tests/AccessDesk.IntegrationTests/AccessDesk.IntegrationTests.csproj --no-build --configuration Release --verbosity normal
+
+  frontend:
+    name: Build Frontend (React + Vite)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build production bundle
+        run: npm run build

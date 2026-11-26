@@ -24,8 +24,9 @@ public static class DatabaseSeeder
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<ApplicationRole>>();
 
-        // Apply any pending migrations automatically on startup
-        await db.Database.MigrateAsync();
+        // Apply any pending migrations automatically on startup (relational databases only)
+        if (db.Database.IsRelational())
+            await db.Database.MigrateAsync();
 
         await SeedRolesAsync(roleManager, logger);
         var users = await SeedUsersAsync(userManager, logger);
