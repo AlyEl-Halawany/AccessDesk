@@ -1,0 +1,113 @@
+## .NET / ASP.NET Core
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+.vs/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+*.log
+*.tmp
+*.temp
+project.lock.json
+project.fragment.lock.json
+artifacts/
+**/Properties/launchSettings.json
+
+# NuGet packages
+*.nupkg
+*.snupkg
+**/[Pp]ackages/
+!**/[Pp]ackages/build/
+*.nuget.props
+*.nuget.targets
+
+# User-specific files
+*.rsuser
+*.user
+*.aps
+
+# Build results
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Ww][Ii][Nn]32/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Bb]uild/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+
+# .NET Core
+project.lock.json
+
+# EF Core Migrations (keep migrations, ignore snapshots if desired)
+# Uncomment if you want to exclude migration snapshots:
+# **/Migrations/*Snapshot.cs
+
+# User secrets (never commit)
+**/appsettings.Development.json
+**/secrets.json
+**/usersecrets/
+
+# ASP.NET Core
+bundleconfig.json
+
+## Node / React
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.npm
+.yarn-integrity
+dist/
+dist-ssr/
+*.local
+
+# Vite
+.vite/
+
+# Environment variables (use .env.example instead)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+## Docker
+.docker/
+
+## Coverage reports
+coverage/
+*.opencover.xml
+TestResults/
+*.trx
+
+## Rider / JetBrains
+.idea/
+*.iml
+
+## VS Code (keep workspace settings but not personal)
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+## macOS
+.DS_Store
+
+## Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+## Rider
+*.sln.iml

@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/AccessDesk.Api/AccessDesk.Api.csproj" />
+    <Project Path="src/AccessDesk.Application/AccessDesk.Application.csproj" />
+    <Project Path="src/AccessDesk.Domain/AccessDesk.Domain.csproj" />
+    <Project Path="src/AccessDesk.Infrastructure/AccessDesk.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/AccessDesk.IntegrationTests/AccessDesk.IntegrationTests.csproj" />
+    <Project Path="tests/AccessDesk.UnitTests/AccessDesk.UnitTests.csproj" />
+  </Folder>
+</Solution>
