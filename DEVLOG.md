@@ -13,9 +13,11 @@ AccessDesk separates `Domain`, `Application`, `Infrastructure`, and `Api` into d
 - If an employee leaves the company (`POST /api/jml/leaver`), we immediately revoke all their active refresh tokens in the database so they cannot mint new access tokens.
 
 ## 3. Why an Append-Only Audit Log?
-In enterprise access governance, audit logs must be tamper-evident. AccessDesk enforces append-only behavior in two places:
+AccessDesk keeps audit records append-only through ordinary application paths, but does not claim cryptographic tamper evidence. The application enforces append-only behavior in these places:
 1. `IAuditLogRepository` only exposes `AddAsync` and `SearchAsync` — there are no update or delete methods.
 2. `AuditLogsController` only exposes `GET /api/audit-logs` (restricted to `SecurityAdmin`) — there are no `PUT`, `PATCH`, or `DELETE` endpoints.
+
+`AccessDeskDbContext` also rejects tracked audit updates and deletes, with integration coverage for both. A privileged database operator can still modify rows; hash chaining, external storage, and independent retention remain future work.
 
 ## 4. How the Approval Workflow Is Modeled
 `AccessRequest` encapsulates its own state machine (`ApproveByManager`, `ApproveByOwner`, `Reject`, `Cancel`, `Expire`, `FlagForSodReview`) instead of leaving status mutations scattered across controllers or services:
@@ -31,3 +33,5 @@ In enterprise access governance, audit logs must be tamper-evident. AccessDesk e
 - Login uses a per-IP five-per-minute rate limit; existing Identity lockout remains five failed passwords. Demo-data seeding now runs only in Development.
 - Added ProblemDetails responses, `/health`, bounded/filterable request and notification lists, existing bounded audit search, basic response security headers, and EF-enforced append-only audit logs with a mutation/deletion test.
 - MailHog was not running on `localhost:1025`; email failure was logged while the review campaign persisted successfully.
+- Added the SecurityAdmin JML console and verified the React production build. Playwright captured the eight README screenshots against the running Development UI and SQL Server.
+- Corrected sample approval timestamps to derive from the seeded request's creation time; this prevents negative dashboard approval durations. The existing local sample row was corrected as well.

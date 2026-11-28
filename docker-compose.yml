@@ -4,7 +4,7 @@ services:
     container_name: accessdesk-sql
     environment:
       ACCEPT_EULA: "Y"
-      MSSQL_SA_PASSWORD: "${MSSQL_SA_PASSWORD:-AccessDesk_Dev123!}"
+      MSSQL_SA_PASSWORD: "${MSSQL_SA_PASSWORD:?Set MSSQL_SA_PASSWORD before starting Compose}"
     ports:
       - "1433:1433"
     volumes:
@@ -34,8 +34,8 @@ services:
         condition: service_started
     environment:
       ASPNETCORE_ENVIRONMENT: Development
-      ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=AccessDeskDb;User Id=sa;Password=${MSSQL_SA_PASSWORD:-AccessDesk_Dev123!};TrustServerCertificate=True;MultipleActiveResultSets=true"
-      Jwt__Secret: "${JWT_SECRET:-AccessDesk-Docker-Dev-Signing-Key-Min-32-Chars!}"
+      ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=AccessDeskDb;User Id=sa;Password=${MSSQL_SA_PASSWORD:?Set MSSQL_SA_PASSWORD before starting Compose};TrustServerCertificate=True;MultipleActiveResultSets=true"
+      Jwt__Secret: "${JWT_SECRET:?Set JWT_SECRET before starting Compose}"
       Smtp__Host: "mailhog"
       Smtp__Port: "1025"
       Cors__AllowedOrigins__0: "http://localhost:3000"

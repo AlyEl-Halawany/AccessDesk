@@ -7,7 +7,7 @@ The repository contains a .NET 10 Clean Architecture API and a React 19/TypeScri
 
 ## Stack
 - .NET SDK target `net10.0` (local verification host: SDK 10.0.404); C# with nullable enabled.
-- ASP.NET Core, EF Core 9.0.5, SQL Server, ASP.NET Core Identity, JWT; MediatR 12.4.1, FluentValidation 11.11.0.
+- ASP.NET Core, EF Core 10.0.13, SQL Server, ASP.NET Core Identity, JWT; MediatR 12.4.1, FluentValidation 11.11.0, MailKit 5.0.0.
 - React 19, TypeScript ~7.0, Vite 8, Tailwind 4, TanStack Query 5; Node CI currently 22.
 - xUnit 2.9.3, Moq 4.20.72, FluentAssertions 7.2.0, WebApplicationFactory 9.0.5.
 
@@ -27,7 +27,7 @@ The repository contains a .NET 10 Clean Architecture API and a React 19/TypeScri
 - API (HTTP): `dotnet run --project src/AccessDesk.Api --launch-profile http` (port 5201; see `Properties/launchSettings.json`).
 - Frontend: `cd frontend; npm ci; npm run dev` (Vite port 5173; proxy target is in `vite.config.ts`).
 - Frontend production build: `cd frontend; npm run build`.
-- Migration application: API startup calls `DatabaseSeeder.SeedAsync`, which runs `Database.MigrateAsync()` for relational providers; alternatively `dotnet ef database update --project src/AccessDesk.Infrastructure --startup-project src/AccessDesk.Api` (requires EF CLI and configured connection).
+- Migration application: API startup applies migrations with `Database.MigrateAsync()` for relational providers; seeding runs separately and only in Development. Alternatively use `dotnet ef database update --project src/AccessDesk.Infrastructure --startup-project src/AccessDesk.Api` (requires EF CLI and configured connection).
 - SQL Server connection is `ConnectionStrings:DefaultConnection`; configure with user secrets or environment variable `ConnectionStrings__DefaultConnection`.
 - Before every commit, run `dotnet build AccessDesk.slnx` and `dotnet test AccessDesk.slnx`; also run `npm run build` for frontend changes.
 

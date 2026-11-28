@@ -43,7 +43,7 @@ Each answer references the exact file in this codebase where the concept is impl
    - **File:** [ValidationBehavior.cs](src/AccessDesk.Application/Common/Behaviors/ValidationBehavior.cs)
 
 9. **Why is `AuditLog` enforced as append-only at multiple layers?**
-   - **Answer:** `IAuditLogRepository` only exposes `AddAsync` and `SearchAsync` (Interface Segregation), and `AuditLogsController` only exposes `GET` — no `PUT`/`DELETE` endpoints exist.
+   - **Answer:** `IAuditLogRepository` exposes append/search only, the controller is read-only, and `AccessDeskDbContext` rejects modified/deleted audit entries during `SaveChanges`. An integration test proves both rejected paths.
    - **File:** [IAuditLogRepository.cs](src/AccessDesk.Domain/Interfaces/IAuditLogRepository.cs), [AuditLogsController.cs](src/AccessDesk.Api/Controllers/AuditLogsController.cs)
 
 10. **How does `GlobalExceptionMiddleware` keep API responses secure?**
@@ -67,8 +67,8 @@ Each answer references the exact file in this codebase where the concept is impl
     - **File:** [AccessRequestRepository.cs](src/AccessDesk.Infrastructure/Persistence/Repositories/AccessRequestRepository.cs)
 
 14. **Why does `DatabaseSeeder` check `if (db.Database.IsRelational())` before calling `MigrateAsync()`?**
-    - **Answer:** `MigrateAsync()` executes SQL migrations, which throws on EF Core's `InMemoryDatabase` used in `WebApplicationFactory` integration tests.
-    - **File:** [DatabaseSeeder.cs](src/AccessDesk.Infrastructure/Persistence/DatabaseSeeder.cs)
+   - **Answer:** `Program.cs` applies migrations outside Testing; `DatabaseSeeder` only inserts demo data. `WebApplicationFactory` uses InMemory and its test seeding is explicit, so no relational migrations run there.
+   - **File:** [Program.cs](src/AccessDesk.Api/Program.cs), [DatabaseSeeder.cs](src/AccessDesk.Infrastructure/Persistence/DatabaseSeeder.cs)
 
 15. **What is `DeleteBehavior.Restrict` and why is it used on `AccessRequests` foreign keys?**
     - **Answer:** SQL Server rejects multiple cascade delete paths to the same table (`ApplicationUser` referenced as Requester, ManagerApprover, and OwnerApprover). `Restrict` prevents accidental cascading deletes and satisfies SQL Server constraints.
@@ -123,7 +123,7 @@ Each answer references the exact file in this codebase where the concept is impl
     - **File:** [InfrastructureServiceExtensions.cs](src/AccessDesk.Infrastructure/InfrastructureServiceExtensions.cs)
 
 25. **How does refresh token rotation work?**
-    - **Answer:** `TokenService.RefreshAsync` verifies the incoming token is active, marks it `RevokedAt = UtcNow`, generates a new `RefreshToken`, links `ReplacedByToken`, and returns a fresh JWT + refresh token pair.
+    - **Answer:** `TokenService.RefreshAsync` hashes the incoming opaque token with SHA-256, looks up only the hash, revokes it, creates a replacement hash, links `ReplacedByTokenHash`, and returns the raw replacement once. Reuse of a revoked token revokes remaining active tokens for that user. SQL rotation runs in a transaction.
     - **File:** [TokenService.cs](src/AccessDesk.Infrastructure/Services/TokenService.cs)
 
 26. **What happens during a JML Leaver event?**
@@ -149,3 +149,27 @@ Each answer references the exact file in this codebase where the concept is impl
 30. **How are Separation of Duties (SoD) conflicts evaluated?**
     - **Answer:** `SodConflictRepository.FindConflictsForRequestAsync` checks the user's currently `Approved` accesses against active `SodConflict` rules. `SubmitAccessRequestHandler` either blocks the request (if `IsBlocking` is true) or flags it as `FlaggedForReview`.
     - **File:** [OtherRepositories.cs](src/AccessDesk.Infrastructure/Persistence/Repositories/OtherRepositories.cs), [SubmitAccessRequestHandler.cs](src/AccessDesk.Application/AccessRequests/Commands/SubmitAccessRequestHandler.cs)
+
+---
+
+### Security hardening and real-database verification
+
+31. **How does login rate limiting complement account lockout?**
+    - **Answer:** ASP.NET Core's built-in fixed-window limiter allows five login requests per source IP per minute; Identity separately locks an existing account after five failed passwords for five minutes. The limiter reduces request floods, while lockout slows password guessing against one account.
+    - **File:** [Program.cs](src/AccessDesk.Api/Program.cs), [InfrastructureServiceExtensions.cs](src/AccessDesk.Infrastructure/InfrastructureServiceExtensions.cs)
+
+32. **Why hash refresh tokens if they are already random?**
+    - **Answer:** Randomness makes guessing infeasible, while hashing protects active credentials if the token table is read. A SHA-256 hex digest is indexed; the raw token exists only in the login/refresh response. Reuse detection revokes that user's other active refresh tokens.
+    - **File:** [TokenService.cs](src/AccessDesk.Infrastructure/Services/TokenService.cs), [RefreshTokenConfiguration](src/AccessDesk.Infrastructure/Persistence/Configurations/OtherConfigurations.cs)
+
+33. **How does `RowVersion` prevent two approvals from both succeeding?**
+    - **Answer:** SQL Server generates a new `rowversion` on each update. EF includes the originally read value in the update predicate; a stale second update affects zero rows and raises `DbUpdateConcurrencyException`, which the API maps to HTTP 409. The optional SQL Server integration test verifies the second save fails.
+    - **File:** [AccessRequest.cs](src/AccessDesk.Domain/Entities/AccessRequest.cs), [AccessRequestConfiguration.cs](src/AccessDesk.Infrastructure/Persistence/Configurations/AccessRequestConfiguration.cs), [SqlServerConcurrencyTests.cs](tests/AccessDesk.IntegrationTests/SqlServerConcurrencyTests.cs)
+
+34. **What does the global exception handler return?**
+    - **Answer:** Validation failures become `ValidationProblemDetails` with HTTP 400, stale writes become ProblemDetails with HTTP 409, and unexpected failures return generic HTTP 500 ProblemDetails without stack traces. `/health` provides a minimal host health endpoint.
+    - **File:** [GlobalExceptionMiddleware.cs](src/AccessDesk.Api/Middleware/GlobalExceptionMiddleware.cs), [Program.cs](src/AccessDesk.Api/Program.cs)
+
+35. **How do I distinguish in-memory API tests from actual SQL Server verification?**
+    - **Answer:** The regular `WebApplicationFactory` suite swaps in EF InMemory and does not validate SQL dialect behavior. The optional `ACCESSDESK_SQLSERVER_CONNECTION` test applies migrations and verifies SQL Server rowversion concurrency. The development workflow was also exercised on local SQL Server Express 2025.
+    - **File:** [AccessDeskWebApplicationFactory.cs](tests/AccessDesk.IntegrationTests/AccessDeskWebApplicationFactory.cs), [SqlServerConcurrencyTests.cs](tests/AccessDesk.IntegrationTests/SqlServerConcurrencyTests.cs)
