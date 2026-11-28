@@ -11,6 +11,10 @@ const page = await browser.newPage({ viewport: { width: 1440, height: 1000 }, de
 page.on('pageerror', (error) => console.error(`Browser error: ${error.message}`));
 
 async function screenshot(name) {
+  await page.evaluate(async () => {
+    await document.fonts.ready;
+  });
+  await page.mouse.move(1439, 999);
   await page.waitForTimeout(900);
   await page.screenshot({ path: `${outputDir}/${name}.png`, fullPage: true });
   console.log(`Captured ${name}.png at ${page.url()}`);
@@ -21,7 +25,7 @@ async function login(accountLabel) {
   await page.getByRole('button', { name: accountLabel }).click();
   await page.getByRole('button', { name: 'Sign In' }).click();
   await page.waitForURL(`${baseUrl}/`, { timeout: 15000 });
-  await page.getByText('Enterprise Access Request', { exact: false }).first().waitFor();
+  await page.getByRole('heading', { name: 'Dashboard' }).waitFor();
 }
 
 try {
@@ -31,6 +35,11 @@ try {
   await login('Employee (Charlie)');
   await screenshot('dashboard');
   await page.goto(`${baseUrl}/requests/new`, { waitUntil: 'networkidle' });
+  const applicationSelect = page.locator('select').first();
+  const githubOption = applicationSelect.locator('option').filter({ hasText: 'GitHub Enterprise' }).first();
+  const githubApplicationId = await githubOption.getAttribute('value');
+  if (!githubApplicationId) throw new Error('GitHub Enterprise was not available in the application list.');
+  await applicationSelect.selectOption(githubApplicationId);
   await screenshot('new-request');
   await page.goto(`${baseUrl}/my-access`, { waitUntil: 'networkidle' });
   await screenshot('my-access');
@@ -38,14 +47,20 @@ try {
   await login('Manager (Alice)');
   await page.goto(`${baseUrl}/approvals`, { waitUntil: 'networkidle' });
   await screenshot('approval-inbox');
-  await page.goto(`${baseUrl}/reviews`, { waitUntil: 'networkidle' });
-  await screenshot('access-reviews');
+
+  await login('App Owner (Bob)');
+  await page.goto(`${baseUrl}/approvals`, { waitUntil: 'networkidle' });
+  await screenshot('approval-inbox-owner');
 
   await login('Security Admin');
   await page.goto(`${baseUrl}/audit-logs`, { waitUntil: 'networkidle' });
   await screenshot('audit-log');
+  await page.goto(`${baseUrl}/applications`, { waitUntil: 'networkidle' });
+  await screenshot('applications');
   await page.goto(`${baseUrl}/jml`, { waitUntil: 'networkidle' });
   await screenshot('jml-console');
+  await page.goto(`${baseUrl}/reviews`, { waitUntil: 'networkidle' });
+  await screenshot('access-reviews');
 } finally {
   await browser.close();
 }

@@ -10,6 +10,8 @@
 - **DONE** — EF rejects tracked AuditLog updates/deletes and integration coverage proves both; audit API/repository surface is read-only.
 - **DONE** — Unit tests (21), integration tests (10 with SQL Server opt-in enabled), and frontend production build pass on 2026-11-28.
 - **DONE** — Playwright captured genuine Development UI screenshots in `docs/screenshots/`; `frontend/capture-screenshots.mjs` recreates them.
+- **DONE** — Frontend screens now share a restrained paper/charcoal/teal design system, grouped role-aware navigation, consistent page headers/forms/tables, and visible keyboard focus styling.
+- **DONE** — Playwright captured ten final desktop views across Employee, Manager, AppOwner, and SecurityAdmin. Mobile checks at 390px showed no horizontal page overflow on login, dashboard, request form/list, or access page; the menu opens correctly.
 - **DONE** — README, AGENTS, interview notes, development log, known issues, MIT license, and CI build badge are present/current.
 - **PARTIAL** — GitHub CI workflow is configured for .NET 10 and Node 22, but latest run status could not be checked because `gh` authentication is invalid.
 - **PARTIAL** — GitHub topics and repository description are not set; `gh auth status` reports an invalid token for `AlyEl-Halawany`.
@@ -40,7 +42,8 @@ Authenticate the GitHub CLI (`gh auth login -h github.com`), then verify the lat
 - `dotnet test AccessDesk.slnx --no-build` with `ACCESSDESK_SQLSERVER_CONNECTION` configured: 21 unit and 10 integration tests passed; SQL Server concurrency test ran (not skipped).
 - `dotnet list AccessDesk.slnx package --vulnerable --include-transitive`: no vulnerable packages reported.
 - `npm run build`: success; Vite chunk-size advisory noted above.
-- `npm run capture:screenshots`: captured login, dashboard, new request, approval inbox, my access, audit log, JML console, and access reviews against the local running app and SQL Server.
+- `npm run capture:screenshots`: captured login, dashboard, new request, manager and owner inboxes, my access, audit log, applications/SoD, JML console, and access reviews against the local running app and SQL Server.
+- Mobile Playwright check at 390px: login and employee pages had `scrollWidth=390`; role-aware mobile navigation opened.
 - Development connection string is in ignored `src/AccessDesk.Api/appsettings.Development.json`; it targets `localhost\SQLEXPRESS`. Signing key for screenshot run was an ephemeral environment variable and was not committed.
 
 ## Repository map
