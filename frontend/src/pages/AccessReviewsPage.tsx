@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
+import { PageHeader } from '../components/PageHeader';
+import { btnApprove, btnPrimary, btnReject, cardClass, fieldClass, tableHead, tdClass, thClass } from '../components/ui';
 
 export const AccessReviewsPage: React.FC = () => {
   const { hasRole } = useAuth();
@@ -10,6 +12,8 @@ export const AccessReviewsPage: React.FC = () => {
 
   const [campaignName, setCampaignName] = useState('');
   const [dueInDays, setDueInDays] = useState(14);
+  const [campaignError, setCampaignError] = useState('');
+  const [campaignSuccess, setCampaignSuccess] = useState('');
 
   const { data: pendingItems } = useQuery({
     queryKey: ['my-review-items'],
@@ -26,14 +30,23 @@ export const AccessReviewsPage: React.FC = () => {
     mutationFn: () => apiClient.post('/api/reviews', { name: campaignName, dueInDays }),
     onSuccess: () => {
       setCampaignName('');
+      setCampaignError('');
+      setCampaignSuccess('Review campaign launched.');
       queryClient.invalidateQueries({ queryKey: ['review-campaigns'] });
       queryClient.invalidateQueries({ queryKey: ['my-review-items'] });
+    },
+    onError: () => {
+      setCampaignSuccess('');
+      setCampaignError('The review campaign could not be launched. Check the details and try again.');
     },
   });
 
   const decideMutation = useMutation({
     mutationFn: ({ itemId, confirm }: { itemId: number; confirm: boolean }) =>
-      apiClient.post(`/api/reviews/items/${itemId}/decide`, { confirm, note: confirm ? 'Confirmed' : 'Revoked during review' }),
+      apiClient.post(`/api/reviews/items/${itemId}/decide`, {
+        confirm,
+        note: confirm ? 'Confirmed' : 'Revoked during review',
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['my-review-items'] });
       queryClient.invalidateQueries({ queryKey: ['review-campaigns'] });
@@ -42,75 +55,82 @@ export const AccessReviewsPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">Access Reviews</h1>
-        <p className="text-sm text-slate-500">Periodic certification of active user access to enforce least privilege.</p>
-      </div>
+      <PageHeader
+        eyebrow="Certification"
+        title="Access reviews"
+        description="Periodic certification of active user access to enforce least privilege."
+      />
 
       {isAdmin && (
-        <div className="bg-white rounded-xl border border-slate-200 p-5 space-y-4">
-          <h2 className="text-sm font-semibold text-slate-800">Start Review Campaign (SecurityAdmin)</h2>
+        <div className={`${cardClass} p-5 space-y-4`}>
+          <h2 className="text-sm font-medium text-ink">Launch a campaign</h2>
+          {campaignError && <p role="alert" className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-danger">{campaignError}</p>}
+          {campaignSuccess && <p role="status" className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-ok">{campaignSuccess}</p>}
           <form
             onSubmit={(e) => {
               e.preventDefault();
               startMutation.mutate();
             }}
-            className="flex flex-col sm:flex-row gap-3"
+            className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_7rem_auto]"
           >
-            <input
-              required
-              value={campaignName}
-              onChange={(e) => setCampaignName(e.target.value)}
-              placeholder="Campaign name (e.g., Q4 Quarterly Access Review)"
-              className="flex-1 px-3.5 py-2 border border-slate-300 rounded-lg text-sm"
-            />
-            <input
-              type="number"
-              min={1}
-              max={90}
-              value={dueInDays}
-              onChange={(e) => setDueInDays(Number(e.target.value))}
-              className="w-28 px-3 py-2 border border-slate-300 rounded-lg text-sm"
-            />
-            <button
-              type="submit"
-              disabled={startMutation.isPending}
-              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg"
-            >
-              Launch Campaign
+            <div className="min-w-0">
+              <label htmlFor="campaign-name" className="mb-1.5 block text-xs font-medium text-ink-soft">Campaign name</label>
+              <input
+                id="campaign-name"
+                required
+                value={campaignName}
+                onChange={(e) => setCampaignName(e.target.value)}
+                placeholder="e.g. Q4 quarterly review"
+                className={fieldClass}
+              />
+            </div>
+            <div>
+              <label htmlFor="campaign-due-days" className="mb-1.5 block text-xs font-medium text-ink-soft">Due in days</label>
+              <input
+                id="campaign-due-days"
+                type="number"
+                min={1}
+                max={90}
+                value={dueInDays}
+                onChange={(e) => setDueInDays(Number(e.target.value))}
+                className={fieldClass}
+              />
+            </div>
+            <button type="submit" disabled={startMutation.isPending} className={`${btnPrimary} w-full whitespace-nowrap sm:mt-auto sm:w-auto`}>
+              {startMutation.isPending ? 'Launching…' : 'Launch campaign'}
             </button>
           </form>
 
           {(campaigns ?? []).length > 0 && (
             <div className="overflow-x-auto pt-2">
-              <table className="w-full text-xs text-left">
-                <thead className="text-slate-500 uppercase border-b border-slate-200">
+              <table className="w-full text-sm text-left">
+                <thead className={tableHead}>
                   <tr>
-                    <th className="py-2 pr-4">Campaign</th>
-                    <th className="py-2 pr-4">Due Date</th>
-                    <th className="py-2 pr-4">Progress</th>
-                    <th className="py-2">Status</th>
+                    <th className={thClass}>Campaign</th>
+                    <th className={thClass}>Due date</th>
+                    <th className={thClass}>Progress</th>
+                    <th className={thClass}>Status</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-line">
                   {campaigns.map((c: any) => (
-                    <tr key={c.id}>
-                      <td className="py-2.5 pr-4 font-medium">{c.name}</td>
-                      <td className="py-2.5 pr-4">{new Date(c.dueDate).toLocaleDateString()}</td>
-                      <td className="py-2.5 pr-4">
+                    <tr key={c.id} className="hover:bg-paper/60">
+                      <td className={`${tdClass} font-medium text-ink`}>{c.name}</td>
+                      <td className={`${tdClass} text-ink-soft`}>{new Date(c.dueDate).toLocaleDateString()}</td>
+                      <td className={`${tdClass} text-ink-soft`}>
                         {c.confirmedItems + c.revokedItems} / {c.totalItems} decided
                       </td>
-                      <td className="py-2.5">
+                      <td className={tdClass}>
                         <span
-                          className={`px-2 py-0.5 rounded-full font-medium ${
+                          className={`px-2 py-0.5 rounded-md text-[11px] font-medium ${
                             c.isCompleted
-                              ? 'bg-emerald-100 text-emerald-700'
+                              ? 'bg-emerald-50 text-ok ring-1 ring-emerald-200'
                               : c.isOverdue
-                              ? 'bg-rose-100 text-rose-700'
-                              : 'bg-amber-100 text-amber-800'
+                                ? 'bg-rose-50 text-danger ring-1 ring-rose-200'
+                                : 'bg-amber-50 text-warn ring-1 ring-amber-200'
                           }`}
                         >
-                          {c.isCompleted ? 'Completed' : c.isOverdue ? 'Overdue' : 'In Progress'}
+                          {c.isCompleted ? 'Completed' : c.isOverdue ? 'Overdue' : 'In progress'}
                         </span>
                       </td>
                     </tr>
@@ -122,36 +142,29 @@ export const AccessReviewsPage: React.FC = () => {
         </div>
       )}
 
-      {/* Manager Pending Items */}
-      <div className="bg-white rounded-xl border border-slate-200 p-5">
-        <h2 className="text-sm font-semibold text-slate-800 mb-3">Pending Reviews Assigned to Me</h2>
-        {(!pendingItems || pendingItems.length === 0) ? (
-          <p className="text-sm text-slate-500">No pending access review items assigned to you.</p>
+      <div className={`${cardClass} p-5`}>
+        <h2 className="text-sm font-medium text-ink mb-3">Assigned to me</h2>
+        {!pendingItems || pendingItems.length === 0 ? (
+          <p className="text-sm text-muted">No pending access review items assigned to you.</p>
         ) : (
           <div className="space-y-3">
             {pendingItems.map((item: any) => (
-              <div key={item.id} className="p-4 rounded-lg border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div key={item.id} className="p-4 rounded-md border border-line flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
-                  <div className="text-sm font-semibold text-slate-900">
+                  <div className="text-sm font-medium text-ink">
                     {item.employeeName} — {item.applicationName} ({item.requestedLevel})
                   </div>
-                  <div className="text-xs text-slate-500">
-                    Campaign: {item.campaignName} · Due {new Date(item.dueDate).toLocaleDateString()}
-                    {item.isOverdue && <span className="ml-2 text-rose-600 font-semibold">OVERDUE</span>}
+                  <div className="text-xs text-muted mt-1">
+                    {item.campaignName} · due {new Date(item.dueDate).toLocaleDateString()}
+                    {item.isOverdue && <span className="ml-2 text-danger font-medium">Overdue</span>}
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <button
-                    onClick={() => decideMutation.mutate({ itemId: item.id, confirm: true })}
-                    className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium rounded-lg"
-                  >
-                    Confirm Access
+                  <button onClick={() => decideMutation.mutate({ itemId: item.id, confirm: true })} className={btnApprove}>
+                    Confirm access
                   </button>
-                  <button
-                    onClick={() => decideMutation.mutate({ itemId: item.id, confirm: false })}
-                    className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-medium rounded-lg"
-                  >
-                    Revoke Access
+                  <button onClick={() => decideMutation.mutate({ itemId: item.id, confirm: false })} className={btnReject}>
+                    Revoke access
                   </button>
                 </div>
               </div>

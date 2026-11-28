@@ -3,6 +3,9 @@ import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../api/client';
 import { StatusBadge } from '../components/StatusBadge';
+import { PageHeader } from '../components/PageHeader';
+import { LoadingState } from '../components/EmptyState';
+import { btnPrimary, cardClass, tableHead, thClass, tdClass } from '../components/ui';
 
 export const MyRequestsPage: React.FC = () => {
   const queryClient = useQueryClient();
@@ -18,64 +21,67 @@ export const MyRequestsPage: React.FC = () => {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['my-requests'] }),
   });
 
-  if (isLoading) return <div className="text-sm text-slate-500">Loading your requests...</div>;
+  if (isLoading) return <LoadingState label="Loading your requests…" />;
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">My Requests</h1>
-          <p className="text-sm text-slate-500">Track the approval status of your submitted access requests.</p>
-        </div>
-        <Link
-          to="/requests/new"
-          className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg"
-        >
-          + New Request
-        </Link>
-      </div>
+      <PageHeader
+        eyebrow="Requests"
+        title="My requests"
+        description="Track approval status for access you have submitted."
+        actions={
+          <Link to="/requests/new" className={btnPrimary}>
+            New request
+          </Link>
+        }
+      />
 
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+      <div className={`${cardClass} overflow-hidden`}>
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left">
-            <thead className="bg-slate-50 text-xs text-slate-500 uppercase border-b border-slate-200">
+            <thead className={tableHead}>
               <tr>
-                <th className="py-3 px-4">Application</th>
-                <th className="py-3 px-4">Level</th>
-                <th className="py-3 px-4">Duration</th>
-                <th className="py-3 px-4">Status</th>
-                <th className="py-3 px-4">Submitted</th>
-                <th className="py-3 px-4">Notes</th>
-                <th className="py-3 px-4 text-right">Actions</th>
+                <th className={thClass}>Application</th>
+                <th className={thClass}>Level</th>
+                <th className={thClass}>Duration</th>
+                <th className={thClass}>Status</th>
+                <th className={thClass}>Submitted</th>
+                <th className={thClass}>Notes</th>
+                <th className={`${thClass} text-right`}>Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-line">
               {requests.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-8 text-center text-slate-500">
+                  <td colSpan={7} className="py-12 text-center text-muted">
                     You have not submitted any access requests yet.
                   </td>
                 </tr>
               ) : (
                 requests.map((r: any) => {
-                  const canCancel = r.status === 'PendingManager' || r.status === 'PendingOwner' || r.status === 'FlaggedForReview';
+                  const canCancel =
+                    r.status === 'PendingManager' || r.status === 'PendingOwner' || r.status === 'FlaggedForReview';
                   return (
-                    <tr key={r.id} className="hover:bg-slate-50">
-                      <td className="py-3 px-4 font-medium text-slate-900">{r.applicationName}</td>
-                      <td className="py-3 px-4">{r.requestedLevel}</td>
-                      <td className="py-3 px-4">{r.durationDays} days</td>
-                      <td className="py-3 px-4">
+                    <tr key={r.id} className="hover:bg-paper/60">
+                      <td className={`${tdClass} font-medium text-ink`}>{r.applicationName}</td>
+                      <td className={`${tdClass} text-ink-soft`}>{r.requestedLevel}</td>
+                      <td className={`${tdClass} text-ink-soft`}>{r.durationDays} days</td>
+                      <td className={tdClass}>
                         <StatusBadge status={r.status} />
                       </td>
-                      <td className="py-3 px-4 text-slate-500">{new Date(r.createdAt).toLocaleDateString()}</td>
-                      <td className="py-3 px-4 text-xs text-slate-600 max-w-xs truncate">
-                        {r.rejectionReason ? `Rejected: ${r.rejectionReason}` : r.hasSodConflict ? 'SoD Conflict Flagged' : r.justification}
+                      <td className={`${tdClass} text-muted`}>{new Date(r.createdAt).toLocaleDateString()}</td>
+                      <td className={`${tdClass} text-xs text-ink-soft max-w-xs truncate`}>
+                        {r.rejectionReason
+                          ? `Rejected: ${r.rejectionReason}`
+                          : r.hasSodConflict
+                            ? 'SoD conflict flagged'
+                            : r.justification}
                       </td>
-                      <td className="py-3 px-4 text-right">
+                      <td className={`${tdClass} text-right`}>
                         {canCancel && (
                           <button
                             onClick={() => cancelMutation.mutate(r.id)}
-                            className="text-xs font-medium text-rose-600 hover:text-rose-800"
+                            className="text-xs font-medium text-danger hover:underline"
                           >
                             Cancel
                           </button>

@@ -1,20 +1,20 @@
 import React from 'react';
 
-const STATUS_STYLES: Record<string, string> = {
-  PendingManager: 'bg-amber-100 text-amber-800 border-amber-200',
-  PendingOwner: 'bg-blue-100 text-blue-800 border-blue-200',
-  Approved: 'bg-emerald-100 text-emerald-800 border-emerald-200',
-  Rejected: 'bg-rose-100 text-rose-800 border-rose-200',
-  Cancelled: 'bg-slate-100 text-slate-700 border-slate-200',
-  Expired: 'bg-orange-100 text-orange-800 border-orange-200',
-  FlaggedForReview: 'bg-purple-100 text-purple-800 border-purple-200',
+const STATUS: Record<string, { label: string; className: string }> = {
+  PendingManager: { label: 'Manager review', className: 'bg-amber-50 text-amber-800 ring-amber-200/80' },
+  PendingOwner: { label: 'Owner review', className: 'bg-sky-50 text-sky-800 ring-sky-200/80' },
+  Approved: { label: 'Approved', className: 'bg-emerald-50 text-ok ring-emerald-200/80' },
+  Rejected: { label: 'Rejected', className: 'bg-rose-50 text-danger ring-rose-200/80' },
+  Cancelled: { label: 'Cancelled', className: 'bg-paper text-ink-soft ring-line' },
+  Expired: { label: 'Expired', className: 'bg-orange-50 text-orange-800 ring-orange-200/80' },
+  FlaggedForReview: { label: 'Flagged', className: 'bg-violet-50 text-violet-800 ring-violet-200/80' },
 };
 
 export const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
-  const style = STATUS_STYLES[status] ?? 'bg-slate-100 text-slate-700 border-slate-200';
+  const item = STATUS[status] ?? { label: status, className: 'bg-paper text-ink-soft ring-line' };
   return (
-    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${style}`}>
-      {status}
+    <span className={`inline-flex items-center h-6 px-2 rounded-md text-[11px] font-medium tracking-wide ring-1 ${item.className}`}>
+      {item.label}
     </span>
   );
 };

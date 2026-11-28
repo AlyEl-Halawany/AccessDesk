@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Check, X } from 'lucide-react';
+import { Check, Inbox, X } from 'lucide-react';
 import { apiClient } from '../api/client';
 import { StatusBadge } from '../components/StatusBadge';
+import { PageHeader } from '../components/PageHeader';
+import { EmptyState, LoadingState } from '../components/EmptyState';
+import { btnApprove, btnReject, btnSecondary, cardClass, textareaClass } from '../components/ui';
 
 export const ApprovalInboxPage: React.FC = () => {
   const queryClient = useQueryClient();
@@ -34,50 +37,45 @@ export const ApprovalInboxPage: React.FC = () => {
     },
   });
 
-  if (isLoading) return <div className="text-sm text-slate-500">Loading approval inbox...</div>;
+  if (isLoading) return <LoadingState label="Loading approval inbox…" />;
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">Approval Inbox</h1>
-        <p className="text-sm text-slate-500">Review and decide on access requests awaiting your sign-off.</p>
-      </div>
+      <PageHeader
+        eyebrow="Workflow"
+        title="Approval inbox"
+        description="Decide on access requests waiting for your sign-off."
+      />
 
       {requests.length === 0 ? (
-        <div className="bg-white rounded-xl border border-slate-200 p-8 text-center text-sm text-slate-500">
-          Your approval inbox is empty.
-        </div>
+        <EmptyState icon={Inbox} title="Inbox is clear" description="There are no requests awaiting your decision." />
       ) : (
         <div className="space-y-3">
           {requests.map((r: any) => (
-            <div key={r.id} className="bg-white rounded-xl border border-slate-200 p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="space-y-1">
-                <div className="flex items-center gap-2.5">
-                  <span className="font-semibold text-slate-900">{r.requesterName}</span>
-                  <span className="text-slate-400">→</span>
-                  <span className="font-medium text-indigo-700">{r.applicationName}</span>
-                  <span className="px-2 py-0.5 text-xs rounded bg-slate-100 text-slate-700 font-medium">
-                    {r.requestedLevel} ({r.durationDays}d)
+            <div key={r.id} className={`${cardClass} p-5 flex flex-col sm:flex-row sm:items-start justify-between gap-4`}>
+              <div className="space-y-2 min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-medium text-ink">{r.requesterName}</span>
+                  <span className="text-muted">→</span>
+                  <span className="font-medium text-accent">{r.applicationName}</span>
+                  <span className="px-2 py-0.5 text-[11px] rounded-md bg-paper text-ink-soft ring-1 ring-line">
+                    {r.requestedLevel} · {r.durationDays}d
                   </span>
                   <StatusBadge status={r.status} />
                 </div>
-                <p className="text-sm text-slate-600">{r.justification}</p>
-                <p className="text-xs text-slate-400">Submitted {new Date(r.createdAt).toLocaleString()}</p>
+                <p className="text-sm text-ink-soft leading-relaxed">{r.justification}</p>
+                <p className="text-xs text-muted">Submitted {new Date(r.createdAt).toLocaleString()}</p>
               </div>
-
               <div className="flex items-center gap-2 shrink-0">
                 <button
                   onClick={() => approveMutation.mutate(r.id)}
                   disabled={approveMutation.isPending}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium"
+                  className={btnApprove}
                 >
                   <Check className="w-3.5 h-3.5" />
                   Approve
                 </button>
-                <button
-                  onClick={() => setRejectingId(r.id)}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-medium"
-                >
+                <button onClick={() => setRejectingId(r.id)} className={btnReject}>
                   <X className="w-3.5 h-3.5" />
                   Reject
                 </button>
@@ -87,18 +85,17 @@ export const ApprovalInboxPage: React.FC = () => {
         </div>
       )}
 
-      {/* Rejection Reason Modal */}
       {rejectingId !== null && (
-        <div className="fixed inset-0 z-50 bg-slate-900/50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl max-w-md w-full p-6 space-y-4">
-            <h3 className="text-lg font-semibold text-slate-900">Reject Access Request</h3>
-            <p className="text-xs text-slate-500">A clear reason is required and will be recorded in the audit log.</p>
+        <div className="fixed inset-0 z-50 bg-ink/40 flex items-center justify-center p-4">
+          <div className="bg-surface border border-line rounded-xl max-w-md w-full p-6 space-y-4 shadow-card">
+            <h3 className="font-serif text-xl text-ink">Reject access request</h3>
+            <p className="text-sm text-muted">A reason is required and is written to the audit log.</p>
             <textarea
               rows={3}
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              placeholder="Explain why this request is being rejected..."
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-rose-500 focus:outline-none"
+              placeholder="Explain why this request is being rejected…"
+              className={textareaClass}
             />
             <div className="flex justify-end gap-2">
               <button
@@ -106,16 +103,16 @@ export const ApprovalInboxPage: React.FC = () => {
                   setRejectingId(null);
                   setReason('');
                 }}
-                className="px-3.5 py-2 text-xs font-medium text-slate-700 bg-slate-100 rounded-lg"
+                className={btnSecondary}
               >
                 Cancel
               </button>
               <button
                 disabled={!reason.trim() || rejectMutation.isPending}
                 onClick={() => rejectMutation.mutate({ id: rejectingId, reason })}
-                className="px-4 py-2 text-xs font-medium text-white bg-rose-600 hover:bg-rose-700 rounded-lg disabled:opacity-50"
+                className="inline-flex items-center h-10 px-4 rounded-md bg-danger text-white text-sm font-medium disabled:opacity-50"
               >
-                Confirm Rejection
+                Confirm rejection
               </button>
             </div>
           </div>
