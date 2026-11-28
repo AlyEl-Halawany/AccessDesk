@@ -8,6 +8,7 @@ import {
   KeyRound,
   Inbox,
   AppWindow,
+  ArrowRightLeft,
   ClipboardCheck,
   ShieldAlert,
   Bell,
@@ -41,7 +42,8 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
     { to: '/my-access', label: 'My Access', icon: KeyRound, show: true },
     { to: '/approvals', label: 'Approval Inbox', icon: Inbox, show: hasRole('Manager', 'AppOwner') },
     { to: '/reviews', label: 'Access Reviews', icon: ClipboardCheck, show: hasRole('Manager', 'SecurityAdmin') },
-    { to: '/applications', label: 'Applications & JML', icon: AppWindow, show: hasRole('SecurityAdmin') },
+    { to: '/applications', label: 'Applications', icon: AppWindow, show: hasRole('SecurityAdmin') },
+    { to: '/jml', label: 'JML Console', icon: ArrowRightLeft, show: hasRole('SecurityAdmin') },
     { to: '/audit-logs', label: 'Audit Log', icon: ShieldAlert, show: hasRole('SecurityAdmin') },
     { to: '/notifications', label: 'Notifications', icon: Bell, badge: unreadCount, show: true },
   ].filter((item) => item.show);

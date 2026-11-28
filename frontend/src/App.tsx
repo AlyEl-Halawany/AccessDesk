@@ -14,6 +14,7 @@ import { ApplicationsPage } from './pages/ApplicationsPage';
 import { AccessReviewsPage } from './pages/AccessReviewsPage';
 import { AuditLogPage } from './pages/AuditLogPage';
 import { NotificationsPage } from './pages/NotificationsPage';
+import { JmlPage } from './pages/JmlPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -44,6 +45,7 @@ export function App() {
             <Route path="/approvals" element={<GuardedPage roles={['Manager', 'AppOwner']}><ApprovalInboxPage /></GuardedPage>} />
             <Route path="/reviews" element={<GuardedPage roles={['Manager', 'SecurityAdmin']}><AccessReviewsPage /></GuardedPage>} />
             <Route path="/applications" element={<GuardedPage roles={['SecurityAdmin']}><ApplicationsPage /></GuardedPage>} />
+            <Route path="/jml" element={<GuardedPage roles={['SecurityAdmin']}><JmlPage /></GuardedPage>} />
             <Route path="/audit-logs" element={<GuardedPage roles={['SecurityAdmin']}><AuditLogPage /></GuardedPage>} />
             <Route path="/notifications" element={<GuardedPage><NotificationsPage /></GuardedPage>} />
             <Route path="*" element={<Navigate to="/" replace />} />
