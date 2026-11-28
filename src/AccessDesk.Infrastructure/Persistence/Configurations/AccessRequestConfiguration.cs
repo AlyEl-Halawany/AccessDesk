@@ -9,6 +9,7 @@ public class AccessRequestConfiguration : IEntityTypeConfiguration<AccessRequest
     public void Configure(EntityTypeBuilder<AccessRequest> builder)
     {
         builder.ToTable("AccessRequests");
+        builder.Property(r => r.RowVersion).IsRowVersion();
 
         builder.Property(r => r.Justification).HasMaxLength(2000).IsRequired();
         builder.Property(r => r.RejectionReason).HasMaxLength(2000);

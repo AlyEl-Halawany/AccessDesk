@@ -12,12 +12,12 @@ public class RefreshToken : BaseEntity
     public int UserId { get; set; }
     public ApplicationUser User { get; set; } = null!;
 
-    /// <summary>The random, unguessable token value stored in the database.</summary>
-    public string Token { get; set; } = string.Empty;
+    /// <summary>SHA-256 hash of the opaque token sent to the client.</summary>
+    public string TokenHash { get; set; } = string.Empty;
 
     public DateTime ExpiresAt { get; set; }
     public DateTime? RevokedAt { get; set; }
-    public string? ReplacedByToken { get; set; }
+    public string? ReplacedByTokenHash { get; set; }
 
     public bool IsExpired => DateTime.UtcNow >= ExpiresAt;
     public bool IsRevoked => RevokedAt is not null;

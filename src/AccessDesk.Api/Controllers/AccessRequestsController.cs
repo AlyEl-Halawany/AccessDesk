@@ -25,18 +25,22 @@ public class AccessRequestsController : ControllerBase
 
     /// <summary>Get all access requests submitted by the current user.</summary>
     [HttpGet("my")]
-    public async Task<IActionResult> GetMyRequests()
+    public async Task<IActionResult> GetMyRequests(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        [FromQuery] RequestStatus? status = null,
+        [FromQuery] string? search = null,
+        CancellationToken ct = default)
     {
-        var result = await _mediator.Send(new GetMyRequestsQuery(CurrentUserId));
+        var result = await _mediator.Send(new GetMyRequestsQuery(CurrentUserId, page, pageSize, status, search), ct);
         return Ok(result);
     }
 
     /// <summary>Get currently active (Approved) access grants for the current user.</summary>
     [HttpGet("my-access")]
-    public async Task<IActionResult> GetMyActiveAccess()
+    public async Task<IActionResult> GetMyActiveAccess([FromQuery] int page = 1, [FromQuery] int pageSize = 20, CancellationToken ct = default)
     {
-        var all = await _mediator.Send(new GetMyRequestsQuery(CurrentUserId));
-        var active = all.Where(r => r.Status == nameof(RequestStatus.Approved));
+        var active = await _mediator.Send(new GetMyRequestsQuery(CurrentUserId, page, pageSize, RequestStatus.Approved), ct);
         return Ok(active);
     }
 
@@ -106,10 +110,10 @@ public class AccessRequestsController : ControllerBase
     /// <summary>Get requests pending approval (for managers and owners).</summary>
     [HttpGet("pending")]
     [Authorize(Roles = "Manager,AppOwner")]
-    public async Task<IActionResult> GetPendingApprovals()
+    public async Task<IActionResult> GetPendingApprovals([FromQuery] int page = 1, [FromQuery] int pageSize = 20, CancellationToken ct = default)
     {
         bool isManager = User.IsInRole("Manager");
-        var result = await _mediator.Send(new GetPendingApprovalsQuery(CurrentUserId, isManager));
+        var result = await _mediator.Send(new GetPendingApprovalsQuery(CurrentUserId, isManager, page, pageSize), ct);
         return Ok(result);
     }
 

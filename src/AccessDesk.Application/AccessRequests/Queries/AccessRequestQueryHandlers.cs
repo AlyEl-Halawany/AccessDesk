@@ -5,8 +5,8 @@ using AccessDesk.Domain.Interfaces;
 namespace AccessDesk.Application.AccessRequests.Queries;
 
 public class AccessRequestQueryHandlers :
-    IRequestHandler<GetMyRequestsQuery, IEnumerable<AccessRequestDto>>,
-    IRequestHandler<GetPendingApprovalsQuery, IEnumerable<AccessRequestDto>>,
+    IRequestHandler<GetMyRequestsQuery, PagedResult<AccessRequestDto>>,
+    IRequestHandler<GetPendingApprovalsQuery, PagedResult<AccessRequestDto>>,
     IRequestHandler<GetRequestByIdQuery, AccessRequestDto?>
 {
     private readonly IAccessRequestRepository _requests;
@@ -16,22 +16,34 @@ public class AccessRequestQueryHandlers :
         _requests = requests;
     }
 
-    public async Task<IEnumerable<AccessRequestDto>> Handle(GetMyRequestsQuery q, CancellationToken ct)
+    public async Task<PagedResult<AccessRequestDto>> Handle(GetMyRequestsQuery q, CancellationToken ct)
     {
-        var requests = await _requests.GetByRequesterIdAsync(q.UserId, ct);
-        return requests.Select(ToDto);
+        var page = Math.Max(1, q.Page);
+        var pageSize = Math.Clamp(q.PageSize, 1, 100);
+        var requests = await _requests.GetByRequesterIdAsync(q.UserId, page, pageSize, q.Status, q.Search, ct);
+        var total = await _requests.CountByRequesterIdAsync(q.UserId, q.Status, q.Search, ct);
+        return new PagedResult<AccessRequestDto>(requests.Select(ToDto), total, page, pageSize);
     }
 
-    public async Task<IEnumerable<AccessRequestDto>> Handle(GetPendingApprovalsQuery q, CancellationToken ct)
+    public async Task<PagedResult<AccessRequestDto>> Handle(GetPendingApprovalsQuery q, CancellationToken ct)
     {
+        var page = Math.Max(1, q.Page);
+        var pageSize = Math.Clamp(q.PageSize, 1, 100);
         IEnumerable<Domain.Entities.AccessRequest> requests;
+        int total;
 
         if (q.IsManager)
-            requests = await _requests.GetPendingForManagerAsync(q.ApproverId, ct);
+        {
+            requests = await _requests.GetPendingForManagerAsync(q.ApproverId, page, pageSize, ct);
+            total = await _requests.CountPendingForManagerAsync(q.ApproverId, ct);
+        }
         else
-            requests = await _requests.GetPendingForOwnerAsync(q.ApproverId, ct);
+        {
+            requests = await _requests.GetPendingForOwnerAsync(q.ApproverId, page, pageSize, ct);
+            total = await _requests.CountPendingForOwnerAsync(q.ApproverId, ct);
+        }
 
-        return requests.Select(ToDto);
+        return new PagedResult<AccessRequestDto>(requests.Select(ToDto), total, page, pageSize);
     }
 
     public async Task<AccessRequestDto?> Handle(GetRequestByIdQuery q, CancellationToken ct)

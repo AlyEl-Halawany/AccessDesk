@@ -90,13 +90,24 @@ public class NotificationRepository : INotificationRepository
             .OrderByDescending(n => n.CreatedAt)
             .ToListAsync(ct);
 
-    public async Task<IEnumerable<Notification>> GetByUserAsync(int userId, int page = 1, int pageSize = 20, CancellationToken ct = default)
-        => await _db.Notifications
-            .Where(n => n.RecipientId == userId)
+    public async Task<IEnumerable<Notification>> GetByUserAsync(int userId, int page = 1, int pageSize = 20, bool unreadOnly = false, CancellationToken ct = default)
+    {
+        var query = BuildUserQuery(userId, unreadOnly);
+        return await query
             .OrderByDescending(n => n.CreatedAt)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync(ct);
+    }
+
+    public async Task<int> CountByUserAsync(int userId, bool unreadOnly = false, CancellationToken ct = default)
+        => await BuildUserQuery(userId, unreadOnly).CountAsync(ct);
+
+    private IQueryable<Notification> BuildUserQuery(int userId, bool unreadOnly)
+    {
+        var query = _db.Notifications.Where(n => n.RecipientId == userId);
+        return unreadOnly ? query.Where(n => !n.IsRead) : query;
+    }
 
     public async Task<int> GetUnreadCountAsync(int userId, CancellationToken ct = default)
         => await _db.Notifications.CountAsync(n => n.RecipientId == userId && !n.IsRead, ct);

@@ -94,13 +94,14 @@ public class RefreshTokenConfiguration : IEntityTypeConfiguration<RefreshToken>
     {
         builder.ToTable("RefreshTokens");
 
-        builder.Property(t => t.Token).HasMaxLength(500).IsRequired();
+        builder.Property(t => t.TokenHash).HasColumnType("char(64)").IsRequired();
+        builder.Property(t => t.ReplacedByTokenHash).HasColumnType("char(64)");
 
         builder.HasOne(t => t.User)
             .WithMany()
             .HasForeignKey(t => t.UserId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        builder.HasIndex(t => t.Token).IsUnique();
+        builder.HasIndex(t => t.TokenHash).IsUnique();
     }
 }

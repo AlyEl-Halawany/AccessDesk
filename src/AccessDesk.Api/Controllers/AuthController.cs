@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using AccessDesk.Domain.Entities;
 using AccessDesk.Infrastructure.Services;
 
@@ -31,6 +32,7 @@ public class AuthController : ControllerBase
     /// <summary>Authenticate and receive a JWT access token and refresh token.</summary>
     [HttpPost("login")]
     [AllowAnonymous]
+    [EnableRateLimiting("login")]
     [ProducesResponseType(typeof(LoginResponse), 200)]
     [ProducesResponseType(401)]
     public async Task<IActionResult> Login([FromBody] LoginRequest request)
@@ -56,7 +58,7 @@ public class AuthController : ControllerBase
 
         return Ok(new LoginResponse(
             AccessToken: accessToken,
-            RefreshToken: refreshToken.Token,
+            RefreshToken: refreshToken,
             ExpiresAt: DateTime.UtcNow.AddMinutes(15),
             User: new UserInfo(user.Id, user.FullName, user.Email!, roles.ToArray())
         ));
@@ -71,7 +73,7 @@ public class AuthController : ControllerBase
         if (result is null)
             return Unauthorized(new { message = "Invalid or expired refresh token." });
 
-        return Ok(new { accessToken = result.Value.AccessToken, refreshToken = result.Value.NewRefreshToken.Token });
+        return Ok(new { accessToken = result.Value.AccessToken, refreshToken = result.Value.NewRefreshToken });
     }
 
     /// <summary>Revoke the current refresh token (logout).</summary>

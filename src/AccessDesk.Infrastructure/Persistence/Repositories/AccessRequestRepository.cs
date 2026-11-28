@@ -25,30 +25,52 @@ public class AccessRequestRepository : IAccessRequestRepository
             .Include(r => r.OwnerApprover)
             .FirstOrDefaultAsync(r => r.Id == id, ct);
 
-    public async Task<IEnumerable<AccessRequest>> GetByRequesterIdAsync(int requesterId, CancellationToken ct = default)
-        => await _db.AccessRequests
-            .Where(r => r.RequesterId == requesterId)
+    public async Task<IEnumerable<AccessRequest>> GetByRequesterIdAsync(int requesterId, int page = 1, int pageSize = 20, RequestStatus? status = null, string? search = null, CancellationToken ct = default)
+        => await BuildRequesterQuery(requesterId, status, search)
             .Include(r => r.Application)
             .OrderByDescending(r => r.CreatedAt)
+            .Skip((Math.Max(1, page) - 1) * Math.Clamp(pageSize, 1, 100))
+            .Take(Math.Clamp(pageSize, 1, 100))
             .ToListAsync(ct);
 
-    public async Task<IEnumerable<AccessRequest>> GetPendingForManagerAsync(int managerId, CancellationToken ct = default)
+    public async Task<int> CountByRequesterIdAsync(int requesterId, RequestStatus? status = null, string? search = null, CancellationToken ct = default)
+        => await BuildRequesterQuery(requesterId, status, search).CountAsync(ct);
+
+    private IQueryable<AccessRequest> BuildRequesterQuery(int requesterId, RequestStatus? status, string? search)
+    {
+        var query = _db.AccessRequests.Where(r => r.RequesterId == requesterId);
+        if (status.HasValue) query = query.Where(r => r.Status == status.Value);
+        if (!string.IsNullOrWhiteSpace(search)) query = query.Where(r => r.Application.Name.Contains(search));
+        return query;
+    }
+
+    public async Task<IEnumerable<AccessRequest>> GetPendingForManagerAsync(int managerId, int page = 1, int pageSize = 20, CancellationToken ct = default)
         => await _db.AccessRequests
             .Where(r => r.Status == RequestStatus.PendingManager
                      && r.Requester.ManagerId == managerId)
             .Include(r => r.Requester)
             .Include(r => r.Application)
             .OrderBy(r => r.CreatedAt)
+            .Skip((Math.Max(1, page) - 1) * Math.Clamp(pageSize, 1, 100))
+            .Take(Math.Clamp(pageSize, 1, 100))
             .ToListAsync(ct);
 
-    public async Task<IEnumerable<AccessRequest>> GetPendingForOwnerAsync(int ownerId, CancellationToken ct = default)
+    public async Task<int> CountPendingForManagerAsync(int managerId, CancellationToken ct = default)
+        => await _db.AccessRequests.CountAsync(r => r.Status == RequestStatus.PendingManager && r.Requester.ManagerId == managerId, ct);
+
+    public async Task<IEnumerable<AccessRequest>> GetPendingForOwnerAsync(int ownerId, int page = 1, int pageSize = 20, CancellationToken ct = default)
         => await _db.AccessRequests
             .Where(r => r.Status == RequestStatus.PendingOwner
                      && r.Application.OwnerId == ownerId)
             .Include(r => r.Requester)
             .Include(r => r.Application)
             .OrderBy(r => r.CreatedAt)
+            .Skip((Math.Max(1, page) - 1) * Math.Clamp(pageSize, 1, 100))
+            .Take(Math.Clamp(pageSize, 1, 100))
             .ToListAsync(ct);
+
+    public async Task<int> CountPendingForOwnerAsync(int ownerId, CancellationToken ct = default)
+        => await _db.AccessRequests.CountAsync(r => r.Status == RequestStatus.PendingOwner && r.Application.OwnerId == ownerId, ct);
 
     public async Task<IEnumerable<AccessRequest>> GetApprovedByUserAndAppAsync(int userId, int applicationId, CancellationToken ct = default)
         => await _db.AccessRequests

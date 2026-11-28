@@ -7,10 +7,11 @@ import { StatusBadge } from '../components/StatusBadge';
 export const MyRequestsPage: React.FC = () => {
   const queryClient = useQueryClient();
 
-  const { data: requests, isLoading } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ['my-requests'],
     queryFn: async () => (await apiClient.get('/api/requests/my')).data,
   });
+  const requests = data?.items ?? [];
 
   const cancelMutation = useMutation({
     mutationFn: (id: number) => apiClient.post(`/api/requests/${id}/cancel`),
@@ -49,7 +50,7 @@ export const MyRequestsPage: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {(requests ?? []).length === 0 ? (
+              {requests.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="py-8 text-center text-slate-500">
                     You have not submitted any access requests yet.

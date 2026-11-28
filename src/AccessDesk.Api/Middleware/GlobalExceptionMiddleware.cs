@@ -1,5 +1,7 @@
 using System.Text.Json;
 using FluentValidation;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace AccessDesk.Api.Middleware;
 
@@ -27,36 +29,53 @@ public class GlobalExceptionMiddleware
         }
         catch (ValidationException ex)
         {
-            context.Response.StatusCode = StatusCodes.Status400BadRequest;
-            context.Response.ContentType = "application/json";
-
             var errors = ex.Errors
                 .GroupBy(e => e.PropertyName)
                 .ToDictionary(
                     g => g.Key,
                     g => g.Select(e => e.ErrorMessage).ToArray());
 
-            var payload = JsonSerializer.Serialize(new
+            var problem = new ValidationProblemDetails(errors)
             {
-                message = "Validation failed.",
-                errors
-            });
+                Status = StatusCodes.Status400BadRequest,
+                Title = "Request validation failed.",
+                Detail = "One or more request values did not pass validation.",
+                Instance = context.Request.Path
+            };
 
-            await context.Response.WriteAsync(payload);
+            context.Response.StatusCode = problem.Status.Value;
+            context.Response.ContentType = "application/problem+json";
+            await context.Response.WriteAsync(JsonSerializer.Serialize(problem));
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            var problem = new ProblemDetails
+            {
+                Status = StatusCodes.Status409Conflict,
+                Title = "The record changed while you were working.",
+                Detail = "Reload the current state and retry the operation.",
+                Instance = context.Request.Path
+            };
+
+            context.Response.StatusCode = problem.Status.Value;
+            context.Response.ContentType = "application/problem+json";
+            await context.Response.WriteAsync(JsonSerializer.Serialize(problem));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unhandled exception on {Method} {Path}", context.Request.Method, context.Request.Path);
 
-            context.Response.StatusCode = StatusCodes.Status500InternalServerError;
-            context.Response.ContentType = "application/json";
-
-            var payload = JsonSerializer.Serialize(new
+            var problem = new ProblemDetails
             {
-                message = "An unexpected error occurred."
-            });
+                Status = StatusCodes.Status500InternalServerError,
+                Title = "An unexpected error occurred.",
+                Detail = "The server could not complete the request.",
+                Instance = context.Request.Path
+            };
 
-            await context.Response.WriteAsync(payload);
+            context.Response.StatusCode = problem.Status.Value;
+            context.Response.ContentType = "application/problem+json";
+            await context.Response.WriteAsync(JsonSerializer.Serialize(problem));
         }
     }
 }

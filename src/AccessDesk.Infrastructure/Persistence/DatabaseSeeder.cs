@@ -24,10 +24,6 @@ public static class DatabaseSeeder
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<ApplicationRole>>();
 
-        // Apply any pending migrations automatically on startup (relational databases only)
-        if (db.Database.IsRelational())
-            await db.Database.MigrateAsync();
-
         await SeedRolesAsync(roleManager, logger);
         var users = await SeedUsersAsync(userManager, logger);
         await SeedApplicationsAsync(db, users, logger);
@@ -198,11 +194,11 @@ public static class DatabaseSeeder
             DurationDays = 365,
             Status = RequestStatus.Approved,
             ManagerApproverId = alice.Id,
-            ManagerDecisionAt = DateTime.UtcNow.AddDays(-10),
             OwnerApproverId = bob.Id,
-            OwnerDecisionAt = DateTime.UtcNow.AddDays(-9),
-            AccessGrantedAt = DateTime.UtcNow.AddDays(-9)
         };
+        approved.ManagerDecisionAt = approved.CreatedAt.AddHours(2);
+        approved.OwnerDecisionAt = approved.CreatedAt.AddDays(1);
+        approved.AccessGrantedAt = approved.CreatedAt.AddDays(1);
         db.AccessRequests.Add(approved);
 
         await db.SaveChangesAsync();

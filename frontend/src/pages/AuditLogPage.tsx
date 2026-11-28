@@ -21,7 +21,7 @@ export const AuditLogPage: React.FC = () => {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-slate-900">Audit Log</h1>
-        <p className="text-sm text-slate-500">Immutable, append-only record of all security-relevant actions.</p>
+        <p className="text-sm text-slate-500">Append-only record of security-relevant actions, with searchable history.</p>
       </div>
 
       {/* Filters */}

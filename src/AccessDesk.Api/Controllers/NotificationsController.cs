@@ -25,14 +25,20 @@ public class NotificationsController : ControllerBase
         int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
     [HttpGet]
-    public async Task<IActionResult> GetMine([FromQuery] int page = 1, [FromQuery] int pageSize = 20, CancellationToken ct = default)
+    public async Task<IActionResult> GetMine([FromQuery] int page = 1, [FromQuery] int pageSize = 20, [FromQuery] bool unreadOnly = false, CancellationToken ct = default)
     {
-        var items = await _notifications.GetByUserAsync(CurrentUserId, page, pageSize, ct);
+        page = Math.Max(1, page);
+        pageSize = Math.Clamp(pageSize, 1, 100);
+        var items = await _notifications.GetByUserAsync(CurrentUserId, page, pageSize, unreadOnly, ct);
         var unreadCount = await _notifications.GetUnreadCountAsync(CurrentUserId, ct);
+        var totalCount = await _notifications.CountByUserAsync(CurrentUserId, unreadOnly, ct);
 
         return Ok(new
         {
             unreadCount,
+            totalCount,
+            page,
+            pageSize,
             items = items.Select(n => new
             {
                 n.Id,

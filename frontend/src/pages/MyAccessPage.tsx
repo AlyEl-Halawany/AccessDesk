@@ -4,10 +4,11 @@ import { KeyRound, Clock } from 'lucide-react';
 import { apiClient } from '../api/client';
 
 export const MyAccessPage: React.FC = () => {
-  const { data: grants, isLoading } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ['my-access'],
     queryFn: async () => (await apiClient.get('/api/requests/my-access')).data,
   });
+  const grants = data?.items ?? [];
 
   if (isLoading) return <div className="text-sm text-slate-500">Loading active access...</div>;
 

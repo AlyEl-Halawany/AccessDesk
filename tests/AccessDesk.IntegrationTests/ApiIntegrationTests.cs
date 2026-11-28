@@ -1,17 +1,25 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.EntityFrameworkCore;
 using FluentAssertions;
+using AccessDesk.Domain.Entities;
+using AccessDesk.Infrastructure.Persistence;
 
 namespace AccessDesk.IntegrationTests;
 
 public class ApiIntegrationTests : IClassFixture<AccessDeskWebApplicationFactory>
 {
     private readonly HttpClient _client;
+    private readonly AccessDeskWebApplicationFactory _factory;
 
     public ApiIntegrationTests(AccessDeskWebApplicationFactory factory)
     {
+        _factory = factory;
         _client = factory.CreateClient();
     }
 
@@ -113,5 +121,101 @@ public class ApiIntegrationTests : IClassFixture<AccessDeskWebApplicationFactory
         var json = await resp.Content.ReadFromJsonAsync<JsonElement>();
         json.TryGetProperty("requestsPerApp", out _).Should().BeTrue();
         json.TryGetProperty("approvalTimes", out _).Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task AuditLog_SaveChangesRejectsModificationAndDeletion()
+    {
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AccessDeskDbContext>();
+        var entry = AuditLog.Create("Test.AppendOnly", "Test", 1, details: "original");
+        db.AuditLogs.Add(entry);
+        await db.SaveChangesAsync();
+
+        entry.Details = "modified";
+        await Assert.ThrowsAsync<InvalidOperationException>(() => db.SaveChangesAsync());
+
+        db.Entry(entry).State = Microsoft.EntityFrameworkCore.EntityState.Unchanged;
+        db.AuditLogs.Remove(entry);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => db.SaveChangesAsync());
+    }
+
+    [Fact]
+    public async Task RefreshTokens_AreHashedAndReuseRevokesActiveTokens()
+    {
+        var loginResponse = await _client.PostAsJsonAsync("/api/auth/login", new
+        {
+            email = "charlie@accessdesk.dev",
+            password = "Employee@123!"
+        });
+        loginResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        var login = await loginResponse.Content.ReadFromJsonAsync<JsonElement>();
+        var rawRefreshToken = login.GetProperty("refreshToken").GetString()!;
+
+        int userId;
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AccessDeskDbContext>();
+            userId = (await db.Users.SingleAsync(u => u.Email == "charlie@accessdesk.dev")).Id;
+            var stored = await db.RefreshTokens.Where(t => t.UserId == userId).OrderByDescending(t => t.Id).FirstAsync();
+            stored.TokenHash.Should().Be(Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(rawRefreshToken))));
+            stored.TokenHash.Should().NotBe(rawRefreshToken);
+        }
+
+        var rotatedResponse = await _client.PostAsJsonAsync("/api/auth/refresh", new { refreshToken = rawRefreshToken });
+        rotatedResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        var rotated = await rotatedResponse.Content.ReadFromJsonAsync<JsonElement>();
+        var rotatedRefreshToken = rotated.GetProperty("refreshToken").GetString()!;
+        rotatedRefreshToken.Should().NotBe(rawRefreshToken);
+
+        var replayResponse = await _client.PostAsJsonAsync("/api/auth/refresh", new { refreshToken = rawRefreshToken });
+        replayResponse.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+
+        using var verificationScope = _factory.Services.CreateScope();
+        var verificationDb = verificationScope.ServiceProvider.GetRequiredService<AccessDeskDbContext>();
+        (await verificationDb.RefreshTokens.CountAsync(t => t.UserId == userId && t.RevokedAt == null && t.ExpiresAt > DateTime.UtcNow))
+            .Should().Be(0);
+    }
+
+    [Fact]
+    public async Task HealthAndValidationResponses_UseSecurityHeadersAndProblemDetails()
+    {
+        var health = await _client.GetAsync("/health");
+        health.StatusCode.Should().Be(HttpStatusCode.OK);
+        health.Headers.GetValues("X-Content-Type-Options").Should().Contain("nosniff");
+        health.Headers.GetValues("X-Frame-Options").Should().Contain("DENY");
+
+        var token = await LoginAsync("charlie@accessdesk.dev", "Employee@123!");
+        SetBearer(token);
+        var invalid = await _client.PostAsJsonAsync("/api/requests", new
+        {
+            applicationId = 3,
+            requestedLevel = "Read",
+            justification = "invalid duration test",
+            durationDays = 0
+        });
+        invalid.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        invalid.Content.Headers.ContentType?.MediaType.Should().Be("application/problem+json");
+        var problem = await invalid.Content.ReadFromJsonAsync<JsonElement>();
+        problem.GetProperty("status").GetInt32().Should().Be(400);
+        problem.GetProperty("errors").TryGetProperty("DurationDays", out _).Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task RequestAndNotificationLists_ClampPageSizeAndSupportFilters()
+    {
+        var token = await LoginAsync("charlie@accessdesk.dev", "Employee@123!");
+        SetBearer(token);
+        var requests = await _client.GetFromJsonAsync<JsonElement>("/api/requests/my?page=0&pageSize=999&status=Approved&search=Jira");
+        requests.GetProperty("page").GetInt32().Should().Be(1);
+        requests.GetProperty("pageSize").GetInt32().Should().Be(100);
+        requests.GetProperty("items").EnumerateArray().All(item => item.GetProperty("status").GetString() == "Approved")
+            .Should().BeTrue();
+
+        var notifications = await _client.GetFromJsonAsync<JsonElement>("/api/notifications?page=0&pageSize=999&unreadOnly=true");
+        notifications.GetProperty("page").GetInt32().Should().Be(1);
+        notifications.GetProperty("pageSize").GetInt32().Should().Be(100);
+        notifications.GetProperty("items").EnumerateArray().All(item => !item.GetProperty("isRead").GetBoolean())
+            .Should().BeTrue();
     }
 }

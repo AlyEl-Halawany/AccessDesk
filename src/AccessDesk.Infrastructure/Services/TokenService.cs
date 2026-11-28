@@ -74,7 +74,7 @@ public class TokenService
     /// Creates a new refresh token for the user and saves it to the database.
     /// Any previously active tokens for this user are left as-is (we support multiple devices).
     /// </summary>
-    public async Task<RefreshToken> CreateRefreshTokenAsync(ApplicationUser user, CancellationToken ct = default)
+    public async Task<string> CreateRefreshTokenAsync(ApplicationUser user, CancellationToken ct = default)
     {
         // Generate a cryptographically random token value
         var tokenValue = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
@@ -82,37 +82,64 @@ public class TokenService
         var refreshToken = new RefreshToken
         {
             UserId = user.Id,
-            Token = tokenValue,
+            TokenHash = HashToken(tokenValue),
             ExpiresAt = DateTime.UtcNow.AddDays(_jwtSettings.RefreshTokenExpiryDays)
         };
 
         _db.RefreshTokens.Add(refreshToken);
         await _db.SaveChangesAsync(ct);
-        return refreshToken;
+        return tokenValue;
     }
 
     /// <summary>
     /// Validates an incoming refresh token, rotates it (creates a new one, revokes the old one),
     /// and returns a fresh access token + refresh token pair.
     /// </summary>
-    public async Task<(string AccessToken, RefreshToken NewRefreshToken)?> RefreshAsync(
+    public async Task<(string AccessToken, string NewRefreshToken)?> RefreshAsync(
         string incomingToken, CancellationToken ct = default)
     {
+        var tokenHash = HashToken(incomingToken);
         var stored = await _db.RefreshTokens
             .Include(t => t.User)
-            .FirstOrDefaultAsync(t => t.Token == incomingToken, ct);
+            .FirstOrDefaultAsync(t => t.TokenHash == tokenHash, ct);
 
-        if (stored is null || !stored.IsActive)
+        if (stored is null)
         {
             _logger.LogWarning("Invalid or expired refresh token used");
             return null;
         }
 
+        if (stored.IsRevoked)
+        {
+            var activeTokens = await _db.RefreshTokens
+                .Where(t => t.UserId == stored.UserId && t.RevokedAt == null && t.ExpiresAt > DateTime.UtcNow)
+                .ToListAsync(ct);
+            foreach (var token in activeTokens)
+                token.RevokedAt = DateTime.UtcNow;
+
+            await _db.SaveChangesAsync(ct);
+            _logger.LogWarning("Refresh token reuse detected for user {UserId}; revoked {TokenCount} active tokens",
+                stored.UserId, activeTokens.Count);
+            return null;
+        }
+
+        if (stored.IsExpired || !stored.User.IsActive)
+        {
+            _logger.LogWarning("Expired refresh token used for user {UserId}", stored.UserId);
+            return null;
+        }
+
+        await using var transaction = _db.Database.IsRelational()
+            ? await _db.Database.BeginTransactionAsync(ct)
+            : null;
+
         // Rotate: revoke the old token and issue a new one
         stored.RevokedAt = DateTime.UtcNow;
         var newRefreshToken = await CreateRefreshTokenAsync(stored.User, ct);
-        stored.ReplacedByToken = newRefreshToken.Token;
+        stored.ReplacedByTokenHash = HashToken(newRefreshToken);
         await _db.SaveChangesAsync(ct);
+        if (transaction is not null)
+            await transaction.CommitAsync(ct);
 
         var accessToken = await CreateAccessTokenAsync(stored.User);
         return (accessToken, newRefreshToken);
@@ -121,13 +148,17 @@ public class TokenService
     /// <summary>Revoke a specific refresh token (called on logout).</summary>
     public async Task RevokeRefreshTokenAsync(string token, CancellationToken ct = default)
     {
-        var stored = await _db.RefreshTokens.FirstOrDefaultAsync(t => t.Token == token, ct);
+        var tokenHash = HashToken(token);
+        var stored = await _db.RefreshTokens.FirstOrDefaultAsync(t => t.TokenHash == tokenHash, ct);
         if (stored is not null && stored.IsActive)
         {
             stored.RevokedAt = DateTime.UtcNow;
             await _db.SaveChangesAsync(ct);
         }
     }
+
+    private static string HashToken(string token) =>
+        Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(token)));
 }
 
 /// <summary>JWT configuration bound from appsettings.json.</summary>

@@ -13,6 +13,7 @@ export const ApprovalInboxPage: React.FC = () => {
     queryKey: ['pending-approvals'],
     queryFn: async () => (await apiClient.get('/api/requests/pending')).data,
   });
+  const requests = pending?.items ?? [];
 
   const approveMutation = useMutation({
     mutationFn: (id: number) => apiClient.post(`/api/requests/${id}/approve`, {}),
@@ -42,13 +43,13 @@ export const ApprovalInboxPage: React.FC = () => {
         <p className="text-sm text-slate-500">Review and decide on access requests awaiting your sign-off.</p>
       </div>
 
-      {(!pending || pending.length === 0) ? (
+      {requests.length === 0 ? (
         <div className="bg-white rounded-xl border border-slate-200 p-8 text-center text-sm text-slate-500">
           Your approval inbox is empty.
         </div>
       ) : (
         <div className="space-y-3">
-          {pending.map((r: any) => (
+          {requests.map((r: any) => (
             <div key={r.id} className="bg-white rounded-xl border border-slate-200 p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="space-y-1">
                 <div className="flex items-center gap-2.5">

@@ -1,11 +1,13 @@
 using MediatR;
 using AccessDesk.Domain.Entities;
+using AccessDesk.Domain.Enums;
 
 namespace AccessDesk.Application.AccessRequests.Queries;
 
-public record GetMyRequestsQuery(int UserId) : IRequest<IEnumerable<AccessRequestDto>>;
-public record GetPendingApprovalsQuery(int ApproverId, bool IsManager) : IRequest<IEnumerable<AccessRequestDto>>;
+public record GetMyRequestsQuery(int UserId, int Page = 1, int PageSize = 20, RequestStatus? Status = null, string? Search = null) : IRequest<PagedResult<AccessRequestDto>>;
+public record GetPendingApprovalsQuery(int ApproverId, bool IsManager, int Page = 1, int PageSize = 20) : IRequest<PagedResult<AccessRequestDto>>;
 public record GetRequestByIdQuery(int RequestId, int RequestingUserId, bool IsAdmin = false) : IRequest<AccessRequestDto?>;
+public record PagedResult<T>(IEnumerable<T> Items, int TotalCount, int Page, int PageSize);
 
 /// <summary>Data transfer object for access request data sent to the client.</summary>
 public record AccessRequestDto(

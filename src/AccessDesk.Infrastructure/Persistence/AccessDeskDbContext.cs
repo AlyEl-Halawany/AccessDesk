@@ -23,6 +23,25 @@ public class AccessDeskDbContext : IdentityDbContext<ApplicationUser, Applicatio
     public DbSet<AccessReviewItem> AccessReviewItems => Set<AccessReviewItem>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
+    public override int SaveChanges(bool acceptAllChangesOnSuccess)
+    {
+        EnsureAuditLogsAppendOnly();
+        return base.SaveChanges(acceptAllChangesOnSuccess);
+    }
+
+    public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
+    {
+        EnsureAuditLogsAppendOnly();
+        return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+    }
+
+    private void EnsureAuditLogsAppendOnly()
+    {
+        if (ChangeTracker.Entries<AuditLog>().Any(entry =>
+                entry.State is EntityState.Modified or EntityState.Deleted))
+            throw new InvalidOperationException("Audit log entries are append-only and cannot be modified or deleted.");
+    }
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder); // Must call base — sets up Identity tables

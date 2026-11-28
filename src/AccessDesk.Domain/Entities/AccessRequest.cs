@@ -16,6 +16,9 @@ namespace AccessDesk.Domain.Entities;
 /// </summary>
 public class AccessRequest : BaseEntity
 {
+    /// <summary>SQL Server-generated optimistic concurrency token.</summary>
+    public byte[] RowVersion { get; set; } = Array.Empty<byte>();
+
     public int RequesterId { get; set; }
     public ApplicationUser Requester { get; set; } = null!;
 
