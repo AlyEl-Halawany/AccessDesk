@@ -30,37 +30,37 @@ async function login(accountLabel) {
 
 try {
   await page.goto(`${baseUrl}/login`, { waitUntil: 'networkidle' });
-  await screenshot('login');
+  await screenshot('login-redesigned');
 
   await login('Employee (Charlie)');
-  await screenshot('dashboard');
+  await screenshot('dashboard-redesigned');
   await page.goto(`${baseUrl}/requests/new`, { waitUntil: 'networkidle' });
   const applicationSelect = page.locator('select').first();
   const githubOption = applicationSelect.locator('option').filter({ hasText: 'GitHub Enterprise' }).first();
   const githubApplicationId = await githubOption.getAttribute('value');
   if (!githubApplicationId) throw new Error('GitHub Enterprise was not available in the application list.');
   await applicationSelect.selectOption(githubApplicationId);
-  await screenshot('new-request');
+  await screenshot('new-request-redesigned');
   await page.goto(`${baseUrl}/my-access`, { waitUntil: 'networkidle' });
-  await screenshot('my-access');
+  await screenshot('my-access-redesigned');
 
   await login('Manager (Alice)');
   await page.goto(`${baseUrl}/approvals`, { waitUntil: 'networkidle' });
-  await screenshot('approval-inbox');
+  await screenshot('approval-inbox-redesigned');
 
   await login('App Owner (Bob)');
   await page.goto(`${baseUrl}/approvals`, { waitUntil: 'networkidle' });
-  await screenshot('approval-inbox-owner');
+  await screenshot('approval-inbox-owner-redesigned');
 
   await login('Security Admin');
   await page.goto(`${baseUrl}/audit-logs`, { waitUntil: 'networkidle' });
-  await screenshot('audit-log');
+  await screenshot('audit-log-redesigned');
   await page.goto(`${baseUrl}/applications`, { waitUntil: 'networkidle' });
-  await screenshot('applications');
+  await screenshot('applications-redesigned');
   await page.goto(`${baseUrl}/jml`, { waitUntil: 'networkidle' });
-  await screenshot('jml-console');
+  await screenshot('jml-console-redesigned');
   await page.goto(`${baseUrl}/reviews`, { waitUntil: 'networkidle' });
-  await screenshot('access-reviews');
+  await screenshot('access-reviews-redesigned');
 } finally {
   await browser.close();
 }

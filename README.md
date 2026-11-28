@@ -52,16 +52,16 @@ Captures of the running Development UI are stored in [`docs/screenshots/`](docs/
 
 | Screen | Screenshot |
 |---|---|
-| Login | ![Login](docs/screenshots/login.png) |
-| Dashboard | ![Dashboard](docs/screenshots/dashboard.png) |
-| New request | ![New request](docs/screenshots/new-request.png) |
-| Approval inbox | ![Approval inbox](docs/screenshots/approval-inbox.png) |
-| Application-owner inbox | ![Application-owner inbox](docs/screenshots/approval-inbox-owner.png) |
-| My access | ![My access](docs/screenshots/my-access.png) |
-| Audit log | ![Audit log](docs/screenshots/audit-log.png) |
-| Applications and SoD | ![Applications and SoD](docs/screenshots/applications.png) |
-| JML console | ![JML console](docs/screenshots/jml-console.png) |
-| Access reviews | ![Access reviews](docs/screenshots/access-reviews.png) |
+| Login | ![Login](docs/screenshots/login-redesigned.png) |
+| Dashboard | ![Dashboard](docs/screenshots/dashboard-redesigned.png) |
+| New request | ![New request](docs/screenshots/new-request-redesigned.png) |
+| Approval inbox | ![Approval inbox](docs/screenshots/approval-inbox-redesigned.png) |
+| Application-owner inbox | ![Application-owner inbox](docs/screenshots/approval-inbox-owner-redesigned.png) |
+| My access | ![My access](docs/screenshots/my-access-redesigned.png) |
+| Audit log | ![Audit log](docs/screenshots/audit-log-redesigned.png) |
+| Applications and SoD | ![Applications and SoD](docs/screenshots/applications-redesigned.png) |
+| JML console | ![JML console](docs/screenshots/jml-console-redesigned.png) |
+| Access reviews | ![Access reviews](docs/screenshots/access-reviews-redesigned.png) |
 
 Recreate them after the API (`http://localhost:5201`) and Vite app (`http://localhost:5173`) are running:
 

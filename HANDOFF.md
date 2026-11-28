@@ -13,6 +13,7 @@
 - **DONE** — Frontend screens now share a restrained paper/charcoal/teal design system, grouped role-aware navigation, consistent page headers/forms/tables, and visible keyboard focus styling.
 - **DONE** — Playwright captured ten final desktop views across Employee, Manager, AppOwner, and SecurityAdmin. Mobile checks at 390px showed no horizontal page overflow on login, dashboard, request form/list, or access page; the menu opens correctly.
 - **DONE** — README, AGENTS, interview notes, development log, known issues, MIT license, and CI build badge are present/current.
+- **DONE** — README screenshot links now use unique `*-redesigned.png` paths to avoid GitHub displaying cached versions of the older UI; the Playwright capture script writes to those same paths.
 - **PARTIAL** — GitHub CI workflow is configured for .NET 10 and Node 22, but latest run status could not be checked because `gh` authentication is invalid.
 - **PARTIAL** — GitHub topics and repository description are not set; `gh auth status` reports an invalid token for `AlyEl-Halawany`.
 - **PARTIAL** — Git history has no detected private-key markers, AWS key IDs, or GitHub tokens; it does contain an old Compose commit with development-only SQL/JWT fallback values. Current Compose requires environment-provided values; history was not rewritten.
@@ -43,6 +44,8 @@ Authenticate the GitHub CLI (`gh auth login -h github.com`), then verify the lat
 - `dotnet list AccessDesk.slnx package --vulnerable --include-transitive`: no vulnerable packages reported.
 - `npm run build`: success; Vite chunk-size advisory noted above.
 - `npm run capture:screenshots`: captured login, dashboard, new request, manager and owner inboxes, my access, audit log, applications/SoD, JML console, and access reviews against the local running app and SQL Server.
+- README screenshot assets were renamed to cache-busting `*-redesigned.png` paths; all ten PNGs are the existing verified redesigned captures.
+- On 2026-11-28, .NET build/test commands could not complete in this environment: solution restore failed with 0 warnings and 0 errors. Prior recorded .NET verification passed on 2026-11-28; rerun when restore works.
 - Mobile Playwright check at 390px: login and employee pages had `scrollWidth=390`; role-aware mobile navigation opened.
 - Development connection string is in ignored `src/AccessDesk.Api/appsettings.Development.json`; it targets `localhost\SQLEXPRESS`. Signing key for screenshot run was an ephemeral environment variable and was not committed.
 
