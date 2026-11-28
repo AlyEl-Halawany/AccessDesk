@@ -19,7 +19,7 @@ flowchart LR
 
 ## Tech Stack
 
-- **Backend:** ASP.NET Core Web API (.NET 10), C#, Entity Framework Core 9, SQL Server
+- **Backend:** ASP.NET Core Web API (.NET 10), C#, Entity Framework Core 10.0.13, SQL Server
 - **Patterns & Libraries:** Clean Architecture, MediatR (CQRS), FluentValidation, Serilog, Swashbuckle (Swagger/OpenAPI)
 - **Authentication:** ASP.NET Core Identity + JWT Bearer access tokens + rotating refresh tokens (RBAC: `Employee`, `Manager`, `AppOwner`, `SecurityAdmin`)
 - **Testing:** xUnit, Moq, FluentAssertions, `WebApplicationFactory` integration tests
@@ -32,6 +32,8 @@ flowchart LR
 - [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
 - [Node.js LTS](https://nodejs.org/)
 - SQL Server LocalDB / SQL Server Express (or Docker)
+
+The Development profile uses local SQL Server Express instance `SQLEXPRESS`. Change `ConnectionStrings:DefaultConnection` in your ignored `src/AccessDesk.Api/appsettings.Development.json`, or override it with `ConnectionStrings__DefaultConnection` through user secrets or the environment. Example: `Server=localhost\\SQLEXPRESS;Database=AccessDeskDb;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True`.
 
 ### 1. Backend
 ```bash
